@@ -3,80 +3,73 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
+	"math/rand"
 
 	"github.com/ricksantos88/go-errorx"
 )
 
 func main() {
-	exampleCheck()
-	exampleMust()
-	exampleTry()
-	exampleMustDo()
+	databaseExample()
+	apiExample()
+	businessLogicExample()
 }
 
-func exampleCheck() {
-	fmt.Println("\n--- Exemplo Check ---")
-	h := errorx.NewHandler("leitura de arquivo")
-	
-	// Simular erro
-	_, err := os.Open("arquivo_inexistente.txt")
-	if h.Check(err) {
-		fmt.Println("Erro foi tratado e logado")
-	}
+func databaseExample() {
+	fmt.Println("\n--- Exemplo Banco de Dados ---")
 
-	// Com contexto adicional
-	h.WithContext("tentativa", 3).WithContext("modo", "leitura")
-	_, err = os.Open("outro_arquivo_inexistente.txt")
-	if h.Check(err) {
-		fmt.Println("Erro com contexto adicional foi tratado")
-	}
-}
-
-func exampleMust() {
-	fmt.Println("\n--- Exemplo Must ---")
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println("Recovered from panic:", r)
-		}
-	}()
-
-	h := errorx.NewHandler("operação crítica")
-	
-	// Isso vai causar panic
-	_, err := os.Open("arquivo_inexistente.txt")
-	h.Must(err)
-}
-
-func exampleTry() {
-	fmt.Println("\n--- Exemplo Try ---")
-	
-	err := errorx.Try("processamento complexo", func() error {
-		// Simular várias operações com erro
-		_, err := os.Open("arquivo_inexistente.txt")
-		if err != nil {
-			return err
+	err := errorx.Try("db.query", func() error {
+		// Simular erro de banco de dados
+		if rand.Intn(2) == 0 {
+			return fmt.Errorf("connection timeout")
 		}
 		return nil
 	})
-	
+
 	if err != nil {
-		log.Printf("Erro tratado: %v\n", err)
+		log.Printf("Erro de banco de dados: %v", err)
+		fmt.Printf("Contexto: %v\n", errorx.GetContext(err))
 	}
 }
 
-func exampleMustDo() {
-	fmt.Println("\n--- Exemplo MustDo ---")
+func apiExample() {
+	fmt.Println("\n--- Exemplo API ---")
+
+	h := errorx.New("api.request").
+		With("endpoint", "/users").
+		With("method", "GET")
+
+	// Simular chamada API
+	_, err := mockAPICall()
+	if h.Check(err) {
+		fmt.Println("Erro na chamada API foi tratado")
+		fmt.Printf("Operação: %s\n", errorx.GetOperation(err))
+	}
+}
+
+func mockAPICall() (interface{}, error) {
+	// Simular erro aleatório
+	if rand.Intn(2) == 0 {
+		return nil, fmt.Errorf("status 500 - internal server error")
+	}
+	return "response data", nil
+}
+
+func businessLogicExample() {
+	fmt.Println("\n--- Exemplo Lógica de Negócios ---")
+
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Recovered from panic:", r)
+			fmt.Println("Recuperado de panic:", r)
 		}
 	}()
 
-	// Isso vai causar panic se o arquivo não existir
-	errorx.MustDo("escrever arquivo", func() error {
-		return os.WriteFile("teste.txt", []byte("dados"), 0644)
+	errorx.MustDo("process.payment", func() error {
+		// Simular validação de pagamento
+		if rand.Intn(2) == 0 {
+			return fmt.Errorf("invalid credit card")
+		}
+		return nil
 	})
-	
-	fmt.Println("Operação concluída com sucesso")
+
+	fmt.Println("Pagamento processado com sucesso")
 }
